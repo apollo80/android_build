@@ -59,6 +59,9 @@ Usage:  ota_from_target_files [flags] input_target_files output_ota_package
   --override_device <device>
       Override device-specific asserts. Can be a comma-separated list.
 
+  --enable-sdext
+      Enable support sd-ext partiosion
+
 """
 
 import sys
@@ -97,6 +100,7 @@ OPTIONS.aslr_mode = True
 OPTIONS.worker_threads = 3
 OPTIONS.backuptool = False
 OPTIONS.override_device = 'auto'
+OPTIONS.enable_sdext = False
 
 def MostPopularKey(d, default):
   """Given a dict, return the key corresponding to the largest
@@ -341,6 +345,44 @@ def CopySystemFiles(input_zip, output_zip=None,
   return symlinks
 
 
+def CopySdextFiles(input_zip, output_zip=None,
+                    substitute=None):
+  """Copies files underneath sd-ext/ in the input zip to the output
+  zip.  Populates the Item class with their metadata, and returns a
+  list of symlinks.  output_zip may be None, in which case the copy is
+  skipped (but the other side effects still happen).  substitute is an
+  optional dict of {output filename: contents} to be output instead of
+  certain input files.
+  """
+
+  symlinks = []
+
+  for info in input_zip.infolist():
+    if info.filename.startswith("SDEXT/"):
+      basefilename = info.filename[6:]
+      if IsSymlink(info):
+        symlinks.append((input_zip.read(info.filename),
+                         "/sd-ext/" + basefilename))
+      else:
+        info2 = copy.copy(info)
+        fn = info2.filename = "sd-ext/" + basefilename
+        if substitute and fn in substitute and substitute[fn] is None:
+          continue
+        if output_zip is not None:
+          if substitute and fn in substitute:
+            data = substitute[fn]
+          else:
+            data = input_zip.read(info.filename)
+          output_zip.writestr(info2, data)
+        if fn.endswith("/"):
+          Item.Get(fn[:-1], dir=True)
+        else:
+          Item.Get(fn, dir=False)
+
+  symlinks.sort()
+  return symlinks
+
+
 def SignOutput(temp_zip_name, output_zip_name):
   key_passwords = common.GetKeyPasswords([OPTIONS.package_key])
   pw = key_passwords[OPTIONS.package_key]
@@ -462,6 +504,13 @@ def WriteFullOTAPackage(input_zip, output_zip):
   script.UnpackPackageDir("system", "/system")
 
   symlinks = CopySystemFiles(input_zip, output_zip)
+  if OPTIONS.enable_sdext:
+      script.MountEx("ext4", "EMMC", "/dev/block/mmcblk0p2", "/sd-ext")
+      script.UnpackPackageDir("sd-ext", "/sd-ext")
+
+      symlinks += CopySdextFiles(input_zip, output_zip)
+      common.ZipWriteStr(output_zip, "sd-ext/extapps/.extapps", "on")
+
   script.MakeSymlinks(symlinks)
 
   boot_img = common.GetBootableImage("boot.img", "boot.img",
@@ -847,6 +896,11 @@ def main(argv):
       OPTIONS.backuptool = bool(a.lower() == 'true')
     elif o in ("--override_device"):
       OPTIONS.override_device = a
+    elif o in ("--sdext"):
+      if a in ("on", "On", "true", "True", "yes", "Yes"):
+        OPTIONS.enable_sdext = True
+      else:
+        OPTIONS.enable_sdext = False
     else:
       return False
     return True
@@ -862,7 +916,8 @@ def main(argv):
                                               "worker_threads=",
                                               "aslr_mode=",
                                               "backup=",
-                                              "override_device="],
+                                              "override_device=",
+                                              "sdext="],
                              extra_option_handler=option_handler)
 
   if len(args) != 2:

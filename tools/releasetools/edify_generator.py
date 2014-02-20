@@ -162,6 +162,13 @@ class EdifyGenerator(object):
                           p.device, p.mount_point))
       self.mounts.add(p.mount_point)
 
+
+  def MountEx(self, fs_type, partision_type, device, mount_point):
+    """Mount the partition with the given mount_point."""
+    self.script.append('mount("%s", "%s", "%s", "%s");' %
+         (fs_type, partision_type, device, mount_point))
+    self.mounts.add(mount_point)
+
   def Unmount(self, mount_point):
     """Unmount the partiiton with the given mount_point."""
     if mount_point in self.mounts:

@@ -908,6 +908,7 @@ $(BUILT_SYSTEMIMAGE): $(FULL_SYSTEMIMAGE_DEPS) $(INSTALLED_FILES_FILE)
 
 INSTALLED_SYSTEMIMAGE := $(PRODUCT_OUT)/system.img
 SYSTEMIMAGE_SOURCE_DIR := $(TARGET_OUT)
+SDEXT_SOURCE_DIR := $(TARGET_OUT_SDEXT)
 
 # The system partition needs room for the recovery image as well.  We
 # now store the recovery image as a binary patch using the boot image
@@ -1342,6 +1343,11 @@ endif
 	@# Contents of the system image
 	$(hide) $(call package_files-copy-root, \
 		$(SYSTEMIMAGE_SOURCE_DIR),$(zip_root)/SYSTEM)
+	@# Contents of the sdext image
+ifdef SDEXT_PRODUCT_PACKAGES
+	$(hide) $(call package_files-copy-root, \
+		$(SDEXT_SOURCE_DIR),$(zip_root)/SDEXT)
+endif
 	@# Contents of the data image
 	$(hide) $(call package_files-copy-root, \
 		$(TARGET_OUT_DATA),$(zip_root)/DATA)
@@ -1431,6 +1437,12 @@ else
     $(INTERNAL_OTA_PACKAGE_TARGET): override_device := $(TARGET_OTA_ASSERT_DEVICE)
 endif
 
+ifeq ($(BOARD_USE_SDEXT_PARTISION),true)
+    $(INTERNAL_OTA_PACKAGE_TARGET): sdext_support := true
+else
+    $(INTERNAL_OTA_PACKAGE_TARGET): sdext_support := false
+endif
+
 $(INTERNAL_OTA_PACKAGE_TARGET): $(BUILT_TARGET_FILES_PACKAGE) $(DISTTOOLS)
 	@echo "$(OTA_FROM_TARGET_SCRIPT)" > $(PRODUCT_OUT)/ota_script_path
 	@echo -e ${CL_YLW}"Package OTA:"${CL_RST}" $@"
@@ -1440,6 +1452,7 @@ $(INTERNAL_OTA_PACKAGE_TARGET): $(BUILT_TARGET_FILES_PACKAGE) $(DISTTOOLS)
 	   -k $(KEY_CERT_PAIR) \
 	   --backup=$(backuptool) \
 	   --override_device=$(override_device) \
+	    --sdext=$(BOARD_USE_SDEXT_PARTISION) \
 	   $(BUILT_TARGET_FILES_PACKAGE) $@
 
 CM_TARGET_PACKAGE := $(PRODUCT_OUT)/cm-$(CM_VERSION).zip

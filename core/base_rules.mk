@@ -103,13 +103,18 @@ ifeq ($(LOCAL_MODULE_PATH),)
   ifdef LOCAL_IS_HOST_MODULE
     partition_tag :=
   else
-  ifeq (true,$(LOCAL_PROPRIETARY_MODULE))
-    partition_tag := _VENDOR
-  else
-    # The definition of should-install-to-system will be different depending
-    # on which goal (e.g., sdk or just droid) is being built.
-    partition_tag := $(if $(call should-install-to-system,$(LOCAL_MODULE_TAGS)),,_DATA)
+    ifeq (true,$(LOCAL_PROPRIETARY_MODULE))
+      partition_tag := _VENDOR
+    else
+      # The definition of should-install-to-system will be different depending
+      # on which goal (e.g., sdk or just droid) is being built.
+      partition_tag := $(if $(call should-install-to-system,$(LOCAL_MODULE_TAGS)),,_DATA)
+    endif
   endif
+  ifeq ($(BOARD_USE_SDEXT_PARTISION),true)
+    ifneq (,$(findstring $(LOCAL_MODULE), $(SDEXT_PRODUCT_PACKAGES)))
+      partition_tag := _SDEXT
+    endif
   endif
   install_path_var := $(my_prefix)OUT$(partition_tag)_$(LOCAL_MODULE_CLASS)
   ifeq (true,$(LOCAL_PRIVILEGED_MODULE))
