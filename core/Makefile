@@ -1461,9 +1461,9 @@ ifneq ($(TARGET_UNIFIED_DEVICE),)
 endif
 
 ifeq ($(BOARD_USE_SDEXT_PARTISION),true)
-    $(INTERNAL_OTA_PACKAGE_TARGET): sdext_support := true
+    $(INTERNAL_OTA_PACKAGE_TARGET): sdext_support := --sdext_partision=$(SDEXT_PARTISION) --sdext_device_type=$(SDEXT_DEVICE_TYPE) --sdext_fs_type=$(SDEXT_FS_TYPE)
 else
-    $(INTERNAL_OTA_PACKAGE_TARGET): sdext_support := false
+    $(INTERNAL_OTA_PACKAGE_TARGET): sdext_support := 
 endif
 
 ifneq ($(TARGET_NO_SEPARATE_RECOVERY),)
@@ -1481,7 +1481,7 @@ $(INTERNAL_OTA_PACKAGE_TARGET): $(BUILT_TARGET_FILES_PACKAGE) $(DISTTOOLS)
 	   -k $(KEY_CERT_PAIR) \
 	   --backup=$(backuptool) \
 	   --override_device=$(override_device) \
-	   --sdext=$(sdext_support) \
+	   $(sdext_support) \
 	   $(override_prop) \
 	   $(separate_recovery) \
 	   $(BUILT_TARGET_FILES_PACKAGE) $@

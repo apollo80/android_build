@@ -213,6 +213,12 @@ class EdifyGenerator(object):
     cmd = "delete(" + ",\0".join(['"%s"' % (i,) for i in file_list]) + ");"
     self.script.append(self._WordWrap(cmd))
 
+  def DeleteRecursive(self, dir_list):
+    """Recursive delete all files and directories from dir_list."""
+    if not dir_list: return
+    cmd = "delete_recursive(" + ",\0".join(['"%s"' % (i,) for i in dir_list]) + ");"
+    self.script.append(self._WordWrap(cmd))
+
   def RenameFile(self, srcfile, tgtfile):
     """Moves a file from one location to another."""
     if self.info.get("update_rename_support", False):
@@ -259,7 +265,7 @@ class EdifyGenerator(object):
         self.script.append(
             'package_extract_file("%(fn)s", "%(device)s");' % args)
       elif partition_type == "BML":
-	        self.script.append(
+        self.script.append(
             ('assert(package_extract_file("%(fn)s", "/tmp/%(device)s.img"),\n'
              '       write_raw_image("/tmp/%(device)s.img", "%(device)s"),\n'
              '       delete("/tmp/%(device)s.img"));') % args)

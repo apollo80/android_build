@@ -64,8 +64,14 @@ Usage:  ota_from_target_files [flags] input_target_files output_ota_package
   --override_device <device>
       Override device-specific asserts. Can be a comma-separated list.
 
-  --sdext <boolean>
-      Enable support sd-ext partiosion
+  --sdext_device_type <device>
+      Type if device, containing /sd-ext directory
+
+  --sdext_partision <device>
+      Partision, containing /sd-ext directory
+
+  --sdext_fs_type <device>
+      Filesystem on partision, containing /sd-ext directory
 
   --override_prop <boolean>
       Override build.prop items with custom vendor init.
@@ -114,7 +120,9 @@ OPTIONS.worker_threads = 3
 OPTIONS.two_step = False
 OPTIONS.backuptool = False
 OPTIONS.override_device = 'auto'
-OPTIONS.enable_sdext = False
+OPTIONS.sdext_device_type = None
+OPTIONS.sdext_partision = None
+OPTIONS.sdext_fs_type = None
 OPTIONS.override_prop = False
 OPTIONS.no_separate_recovery = False
 
@@ -569,8 +577,9 @@ else if get_stage("%(bcb_dev)s", "stage") == "3/3" then
   script.UnpackPackageDir("system", "/system")
 
   symlinks = CopySystemFiles(input_zip, output_zip)
-  if OPTIONS.enable_sdext:
-      script.MountEx("ext4", "EMMC", "/dev/block/mmcblk0p2", "/sd-ext")
+  if OPTIONS.sdext_device_type and OPTIONS.sdext_partision and OPTIONS.sdext_fs_type:
+      script.MountEx(OPTIONS.sdext_fs_type, OPTIONS.sdext_device_type, OPTIONS.sdext_partision, "/sd-ext")
+      script.DeleteRecursive( ["/sd-ext/extapps/"])
       script.UnpackPackageDir("sd-ext", "/sd-ext")
 
       symlinks += CopySdextFiles(input_zip, output_zip)
@@ -1073,11 +1082,12 @@ def main(argv):
       OPTIONS.backuptool = bool(a.lower() == 'true')
     elif o in ("--override_device"):
       OPTIONS.override_device = a
-    elif o in ("--sdext"):
-      if a in ("on", "On", "true", "True", "yes", "Yes"):
-        OPTIONS.enable_sdext = True
-      else:
-        OPTIONS.enable_sdext = False
+    elif o in ("--sdext_device_type"):
+        OPTIONS.sdext_device_type = a
+    elif o in ("--sdext_partision"):
+        OPTIONS.sdext_partision = a
+    elif o in ("--sdext_fs_type"):
+        OPTIONS.sdext_fs_type = a
     elif o in ("--override_prop"):
       OPTIONS.override_prop = bool(a.lower() == 'true')
     elif o in ("--no_separate_recovery"):
@@ -1099,7 +1109,9 @@ def main(argv):
                                               "two_step",
                                               "backup=",
                                               "override_device=",
-                                              "sdext=",
+                                              "sdext_device_type=",
+                                              "sdext_partision=",
+                                              "sdext_fs_type=",
                                               "override_prop=",
                                               "no_separate_recovery=",
                                               ],
